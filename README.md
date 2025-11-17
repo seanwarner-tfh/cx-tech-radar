@@ -105,6 +105,40 @@ python scripts/backup.py
 
 Backups are saved to `data/backups/`.
 
+## Testing
+
+Make sure your virtual environment is activated, then run the test suite:
+```bash
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python tests/run_tests.py
+```
+
+Or use unittest directly:
+```bash
+python -m unittest discover tests
+```
+
+Tests cover:
+- Database operations (CRUD, filtering, search)
+- Configuration loading and weighted scoring
+- Stable offset computation
+
+Test files use temporary databases, so your production data is safe.
+
+## Logging
+
+Logging is configured automatically when the app starts. Logs are written to:
+- `logs/cx_tech_radar.log` - All log messages
+- `logs/cx_tech_radar_errors.log` - Error and above only
+
+Set log level via environment variable:
+```bash
+export LOG_LEVEL=DEBUG  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+streamlit run app.py
+```
+
+Logs rotate automatically (10MB max, 5 backups).
+
 ## Project Structure
 
 ```

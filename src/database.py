@@ -3,6 +3,10 @@ import json
 from typing import Dict, Optional
 import pandas as pd
 import hashlib
+from .logging_config import get_logger
+
+# Get logger
+logger = get_logger("cx_tech_radar.database")
 
 class TechRadarDB:
     def __init__(self, db_path: str = "data/radar.db"):
@@ -42,11 +46,13 @@ class TechRadarDB:
         # Add new columns if they don't exist (for existing databases)
         try:
             cursor.execute("ALTER TABLE tools ADD COLUMN plot_angle_offset INTEGER")
+            logger.debug("Added plot_angle_offset column")
         except sqlite3.OperationalError:
             pass  # Column already exists
         
         try:
             cursor.execute("ALTER TABLE tools ADD COLUMN plot_radius_offset REAL")
+            logger.debug("Added plot_radius_offset column")
         except sqlite3.OperationalError:
             pass  # Column already exists
         
@@ -99,9 +105,11 @@ class TechRadarDB:
                 """)
             
             self.fts5_available = True
+            logger.info("FTS5 full-text search initialized successfully")
         except sqlite3.OperationalError as e:
             # FTS5 not available, fall back to LIKE search
             self.fts5_available = False
+            logger.warning(f"FTS5 not available, using LIKE search fallback: {e}")
         
         conn.commit()
         conn.close()
@@ -158,10 +166,15 @@ class TechRadarDB:
             
             tool_id = cursor.lastrowid
             conn.commit()
+            logger.info(f"Added tool: {tool_data.get('name')} (ID: {tool_id})")
             return tool_id
             
         except sqlite3.IntegrityError:
+            logger.warning(f"Tool already exists: {tool_data.get('name')}")
             return -1
+        except Exception as e:
+            logger.error(f"Error adding tool {tool_data.get('name')}: {e}", exc_info=True)
+            raise
         finally:
             conn.close()
     
@@ -261,8 +274,10 @@ class TechRadarDB:
                     AND tools_fts MATCH ?
                     ORDER BY rank
                 """, conn, params=(fts_query,))
-            except sqlite3.OperationalError:
+                logger.debug(f"FTS5 search for '{query}' returned {len(df)} results")
+            except sqlite3.OperationalError as e:
                 # If FTS5 query fails, fall back to LIKE
+                logger.warning(f"FTS5 query failed, falling back to LIKE: {e}")
                 fts5_available = False
         
         if not fts5_available:

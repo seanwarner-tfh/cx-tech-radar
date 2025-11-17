@@ -5,11 +5,11 @@ from typing import List
 import json
 import time
 import re
-import logging
 from .config import get_config, compute_weighted_score
+from .logging_config import get_logger
 
-# Configure logging
-logger = logging.getLogger(__name__)
+# Get logger
+logger = get_logger("cx_tech_radar.analyzer")
 
 class ToolAnalysis(BaseModel):
     """Structured output for tool analysis"""

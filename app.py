@@ -5,8 +5,14 @@ import pandas as pd
 from src.database import TechRadarDB
 from src.analyzer import TechAnalyzer
 from src.visualizer import RadarVisualizer
+from src.logging_config import setup_logging, get_logger
 
+# Load environment variables
 load_dotenv()
+
+# Set up logging
+logger = setup_logging()
+app_logger = get_logger("cx_tech_radar.app")
 
 # Page config
 st.set_page_config(
@@ -18,13 +24,16 @@ st.set_page_config(
 # Initialize components
 @st.cache_resource
 def init_components():
+    app_logger.info("Initializing application components")
     db = TechRadarDB()
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
+        app_logger.error("ANTHROPIC_API_KEY not found in .env file")
         st.error("⚠️ ANTHROPIC_API_KEY not found in .env file")
         st.stop()
     analyzer = TechAnalyzer(api_key)
     visualizer = RadarVisualizer()
+    app_logger.info("Application components initialized successfully")
     return db, analyzer, visualizer
 
 db, analyzer, visualizer = init_components()
@@ -123,11 +132,14 @@ elif page == "➕ Add Tool":
             if tool_info:
                 with st.spinner("Analyzing..."):
                     try:
+                        app_logger.info(f"Analyzing tool from source: {source_url[:50] if source_url else 'manual input'}")
                         analysis = analyzer.analyze_tool(tool_info, source_url)
                         st.session_state.current_analysis = analysis
                         st.session_state.source_url = source_url
+                        app_logger.info(f"Analysis complete for: {analysis.name}")
                         st.rerun()
                     except Exception as e:
+                        app_logger.error(f"Error analyzing tool: {e}", exc_info=True)
                         st.error(f"Error analyzing tool: {e}")
                         st.error("If this persists, check that your API key is correct in the .env file")
             else:
@@ -141,14 +153,17 @@ elif page == "➕ Add Tool":
                 result = db.add_tool(tool_data)
                 
                 if result > 0:
+                    app_logger.info(f"Tool saved successfully: {st.session_state.current_analysis.name}")
                     st.success(f"✅ Saved {st.session_state.current_analysis.name}!")
                     st.balloons()
                     # Clear the analysis
                     st.session_state.current_analysis = None
                     st.rerun()
                 elif result == -1:
+                    app_logger.warning(f"Attempted to save duplicate tool: {st.session_state.current_analysis.name}")
                     st.warning("⚠️ Tool already exists in database")
                 else:
+                    app_logger.error(f"Error saving tool: {st.session_state.current_analysis.name}")
                     st.error("Error saving tool")
     
     # Display analysis results if available
