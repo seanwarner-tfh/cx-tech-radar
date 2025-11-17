@@ -188,10 +188,10 @@ elif page == "🔍 Search":
     
     search_query = st.text_input("🔍 Search", placeholder="Enter tool name, category, or keyword...")
     
-    if search_query:
+    if search_query and search_query.strip():
         @st.cache_data(ttl=30)
         def cached_search(q):
-            return db.search_tools(q)
+            return db.search_tools(q.strip())
         
         results = cached_search(search_query)
         
@@ -215,10 +215,15 @@ elif page == "🔍 Search":
             # CSV Export button
             st.markdown("---")
             csv = results.to_csv(index=False)
+            # Sanitize filename
+            import re
+            safe_query = re.sub(r'[^\w\s-]', '', search_query[:20]).strip()
+            safe_query = re.sub(r'[-\s]+', '-', safe_query) or "search"
+            
             st.download_button(
                 label="📥 Download Search Results as CSV",
                 data=csv,
-                file_name=f"cx_tech_radar_search_{search_query[:20]}.csv",
+                file_name=f"cx_tech_radar_search_{safe_query}.csv",
                 mime="text/csv"
             )
         else:
@@ -232,7 +237,15 @@ elif page == "📊 Radar View":
     
     # Filters sidebar
     with st.sidebar.expander("🔍 Filters", expanded=False):
-        categories = db.get_all_tools()['category'].unique().tolist() if not db.get_all_tools().empty else []
+        # Get all tools once for categories list
+        @st.cache_data(ttl=60)
+        def get_categories():
+            df = db.get_all_tools()
+            if df.empty:
+                return []
+            return df['category'].dropna().unique().tolist()
+        
+        categories = get_categories()
         positions = ['Adopt', 'Trial', 'Assess', 'Hold']
         
         filter_category = st.selectbox("Category", options=["All"] + sorted(categories), index=0)

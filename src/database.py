@@ -1,8 +1,8 @@
 import sqlite3
 import json
-from datetime import datetime
-from typing import List, Dict, Optional
+from typing import Dict, Optional
 import pandas as pd
+import hashlib
 
 class TechRadarDB:
     def __init__(self, db_path: str = "data/radar.db"):
@@ -107,12 +107,14 @@ class TechRadarDB:
         conn.close()
     
     def _compute_stable_offsets(self, name: str) -> tuple:
-        """Compute stable angle and radius offsets from tool name hash"""
-        name_hash = hash(name)
+        """Compute stable angle and radius offsets from tool name hash
+        Uses MD5 for deterministic hashing across Python versions"""
+        # Use MD5 for deterministic hash (stable across Python versions)
+        name_hash = int(hashlib.md5(name.encode('utf-8')).hexdigest(), 16)
         # Angle offset: -20 to 20 degrees
         angle_offset = (name_hash % 41) - 20
         # Radius offset: 0.00 to 0.29
-        radius_offset = (abs(name_hash) % 30) / 100.0
+        radius_offset = (name_hash % 30) / 100.0
         return angle_offset, radius_offset
     
     def add_tool(self, tool_data: Dict) -> int:
@@ -216,8 +218,9 @@ class TechRadarDB:
                         """, (angle_offset, radius_offset, row['id']))
                         conn.commit()
                         conn.close()
-                    except:
-                        pass  # Non-critical, continue
+                    except (sqlite3.Error, Exception) as e:
+                        # Non-critical, continue - offsets are computed on-the-fly anyway
+                        pass
         
         if not df.empty:
             df['key_features'] = df['key_features'].apply(
@@ -238,23 +241,31 @@ class TechRadarDB:
         try:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tools_fts'")
             fts5_available = cursor.fetchone() is not None
-        except:
+        except sqlite3.Error:
             fts5_available = False
         
         if fts5_available:
             # Use FTS5 with ranking
             # Escape special FTS5 characters and build query
-            fts_query = query.replace('"', '""')  # Escape quotes
-            df = pd.read_sql_query("""
-                SELECT t.*, 
-                       bm25(tools_fts) AS rank
-                FROM tools t
-                JOIN tools_fts ON tools_fts.rowid = t.id
-                WHERE t.status = 'active'
-                AND tools_fts MATCH ?
-                ORDER BY rank
-            """, conn, params=(fts_query,))
-        else:
+            # FTS5 special chars: ", ', \, and operators like AND, OR, NOT
+            fts_query = query.replace('"', '""').replace("'", "''")
+            # Wrap in quotes for phrase search, or use simple token search
+            fts_query = f'"{fts_query}"' if ' ' in fts_query else fts_query
+            try:
+                df = pd.read_sql_query("""
+                    SELECT t.*, 
+                           bm25(tools_fts) AS rank
+                    FROM tools t
+                    JOIN tools_fts ON tools_fts.rowid = t.id
+                    WHERE t.status = 'active'
+                    AND tools_fts MATCH ?
+                    ORDER BY rank
+                """, conn, params=(fts_query,))
+            except sqlite3.OperationalError:
+                # If FTS5 query fails, fall back to LIKE
+                fts5_available = False
+        
+        if not fts5_available:
             # Fallback to LIKE search
             like_pattern = f'%{query}%'
             df = pd.read_sql_query("""

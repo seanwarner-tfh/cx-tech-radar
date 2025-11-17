@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import pandas as pd
 import math
+import hashlib
 
 class RadarVisualizer:
     def __init__(self):
@@ -54,12 +55,16 @@ class RadarVisualizer:
             if pd.notna(tool.get('plot_angle_offset')):
                 angle_offset = tool['plot_angle_offset']
             else:
-                angle_offset = (hash(tool['name']) % 41) - 20
+                # Use MD5 for deterministic hash (same as database.py)
+                name_hash = int(hashlib.md5(tool['name'].encode('utf-8')).hexdigest(), 16)
+                angle_offset = (name_hash % 41) - 20
             
             if pd.notna(tool.get('plot_radius_offset')):
                 radius_offset = tool['plot_radius_offset']
             else:
-                radius_offset = (abs(hash(tool['name'])) % 30) / 100.0
+                # Use MD5 for deterministic hash (same as database.py)
+                name_hash = int(hashlib.md5(tool['name'].encode('utf-8')).hexdigest(), 16)
+                radius_offset = (name_hash % 30) / 100.0
             
             angle = math.radians(base_angle + angle_offset)
             radius = ring + 0.5 + radius_offset
