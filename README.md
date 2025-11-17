@@ -11,47 +11,35 @@ A Streamlit application for discovering and evaluating Customer Experience (CX) 
 - 💾 **Local-First**: SQLite database with migration system and backup scripts
 - 📥 **Data Export**: CSV export functionality for tools and search results
 
-## Setup
+## Quick Start
 
-### Prerequisites
+**New to the project?** See [SETUP.md](SETUP.md) for a clean, step-by-step setup guide.
 
-- Python 3.9.6+
-- Anthropic API key
+### Quick Setup (TL;DR)
 
-### Installation
-
-1. Clone the repository:
 ```bash
+# Clone and enter directory
 git clone https://github.com/seanwarner-tfh/cx-tech-radar.git
 cd cx-tech-radar
-```
 
-2. Create a virtual environment and install dependencies:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Set up virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-3. Create a `.env` file with your Anthropic API key:
-```bash
+# Configure API key
 echo "ANTHROPIC_API_KEY=your-api-key-here" > .env
-```
 
-4. (Optional) Set the Anthropic model (defaults to `claude-3-haiku-20240307`):
-```bash
-echo "ANTHROPIC_MODEL=claude-3-haiku-20240307" >> .env
-```
-
-5. Run database migrations:
-```bash
+# Initialize database
 python scripts/migrate.py
-```
 
-6. Start the application:
-```bash
+# Run the app
 streamlit run app.py
 ```
+
+For detailed setup instructions, troubleshooting, and more, see [SETUP.md](SETUP.md).
 
 ## Usage
 
