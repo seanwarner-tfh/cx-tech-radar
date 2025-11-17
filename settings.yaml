@@ -1,0 +1,35 @@
+# CX Tech Radar Configuration
+
+# Scoring weights (must sum to 1.0)
+scoring:
+  cx_weight: 0.6
+  integration_weight: 0.4
+
+# Categories
+categories:
+  - CRM
+  - Helpdesk/Support
+  - Analytics
+  - Knowledge Base
+  - Chat/Messaging
+  - Feedback/Survey
+  - Workforce Management
+  - AI/Automation
+  - Integration Platform
+  - Voice/Phone
+  - Other
+
+# Cost bands
+cost_bands:
+  low: "$"      # <$50/user/month or free tier suitable
+  medium: "$$"  # $50-150/user/month
+  high: "$$$"   # $150-500/user/month
+  enterprise: "$$$$"  # >$500/user/month or enterprise only
+
+# Radar positions
+positions:
+  - Adopt
+  - Trial
+  - Assess
+  - Hold
+
